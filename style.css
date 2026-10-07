@@ -1,0 +1,33 @@
+:root {
+  color-scheme: light;
+  font-family: "Times New Roman", Times, serif;
+  background: #fff;
+  color: #111;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 2.5rem;
+}
+
+h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+#summary {
+  margin: 0 0 1rem;
+  line-height: 1.4;
+}
+
+.chart-wrap {
+  background: #fff;
+  border: 1px solid #111;
+  padding: 0.75rem 0.75rem 0.25rem;
+}
