@@ -1,6 +1,11 @@
 const font = { family: '"Times New Roman", Times, serif', size: 16 };
 const ink = "#111";
 
+const viewLimits = {
+  x: { min: -0.1, max: 0.1 },
+  y: { min: 0.975, max: 1.012 },
+};
+
 const errorBars = {
   id: "errorBars",
   afterDatasetsDraw(chart) {
@@ -8,6 +13,8 @@ const errorBars = {
     if (!points) return;
 
     const meta = chart.getDatasetMeta(0);
+    if (meta.hidden) return;
+
     const yScale = chart.scales.y;
     const { ctx, chartArea } = chart;
     ctx.save();
@@ -18,6 +25,7 @@ const errorBars = {
     ctx.lineWidth = 1;
 
     meta.data.forEach((point, index) => {
+      if (point.skip) return;
       const err = points[index][2];
       const flux = points[index][1];
       const top = yScale.getPixelForValue(flux + err);
@@ -52,6 +60,24 @@ const seriesLabel = {
   },
 };
 
+const crosshair = {
+  id: "crosshair",
+  afterDraw(chart) {
+    const x = chart.$crosshairX;
+    if (x == null) return;
+    const { ctx, chartArea } = chart;
+    ctx.save();
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, chartArea.top);
+    ctx.lineTo(x, chartArea.bottom);
+    ctx.stroke();
+    ctx.restore();
+  },
+};
+
 function axisOptions(title) {
   return {
     title: { display: true, text: title, color: ink, font, padding: 8 },
@@ -59,6 +85,14 @@ function axisOptions(title) {
     grid: { color: "rgba(0, 0, 0, 0.18)" },
     border: { color: ink },
   };
+}
+
+function formatReadout(time, flux, err) {
+  return `t = ${time.toFixed(4)} days · flux = ${flux.toFixed(4)} ± ${err.toFixed(4)}`;
+}
+
+function setReadout(text) {
+  document.getElementById("readout").textContent = text;
 }
 
 async function main() {
@@ -71,14 +105,15 @@ async function main() {
   const canvas = document.getElementById("magChart");
   const chart = new Chart(canvas, {
     type: "scatter",
-    plugins: [errorBars, seriesLabel],
+    plugins: [errorBars, seriesLabel, crosshair],
     data: {
       datasets: [
         {
           label: curve.instrument,
           data: curve.points.map(([t, flux]) => ({ x: t, y: flux })),
           pointRadius: 0,
-          pointHoverRadius: 3,
+          pointHoverRadius: 4,
+          pointHitRadius: 12,
         },
         {
           label: "Transit model",
@@ -96,17 +131,64 @@ async function main() {
       aspectRatio: 1.85,
       clip: 0,
       animation: false,
+      interaction: {
+        mode: "nearest",
+        axis: "x",
+        intersect: false,
+      },
+      onHover(_event, elements) {
+        if (!elements.length) {
+          chart.$crosshairX = null;
+          setReadout("Hover over the chart to inspect a measurement.");
+          chart.draw();
+          return;
+        }
+
+        const item = elements[0];
+        if (item.datasetIndex !== 0) return;
+
+        const [time, flux, err] = curve.points[item.index];
+        chart.$crosshairX = item.element.x;
+        setReadout(formatReadout(time, flux, err));
+        chart.draw();
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
           callbacks: {
+            title(items) {
+              const item = items[0];
+              return `t = ${item.parsed.x.toFixed(4)} days`;
+            },
             label(item) {
               if (item.datasetIndex === 1) {
-                return `model  ${item.parsed.y.toFixed(4)}`;
+                return `model flux ${item.parsed.y.toFixed(4)}`;
               }
               const err = curve.points[item.dataIndex][2];
-              return `${item.parsed.y.toFixed(4)} ± ${err.toFixed(4)}`;
+              return `flux ${item.parsed.y.toFixed(4)} ± ${err.toFixed(4)}`;
             },
+          },
+        },
+        zoom: {
+          limits: {
+            x: { min: -0.12, max: 0.12, minRange: 0.01 },
+            y: { min: 0.97, max: 1.015, minRange: 0.002 },
+          },
+          pan: {
+            enabled: true,
+            mode: "xy",
+            modifierKey: "shift",
+          },
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            drag: {
+              enabled: true,
+              backgroundColor: "rgba(0, 0, 0, 0.08)",
+              borderColor: ink,
+              borderWidth: 1,
+            },
+            mode: "xy",
           },
         },
       },
@@ -114,23 +196,23 @@ async function main() {
         x: {
           ...axisOptions("time from center of transit (days)"),
           type: "linear",
-          min: -0.1,
-          max: 0.1,
+          min: viewLimits.x.min,
+          max: viewLimits.x.max,
           ticks: {
             color: ink,
             font,
-            stepSize: 0.05,
+            maxTicksLimit: 9,
             callback: (value) => Number(value).toFixed(2),
           },
         },
         y: {
           ...axisOptions("relative flux"),
-          min: 0.975,
-          max: 1.012,
+          min: viewLimits.y.min,
+          max: viewLimits.y.max,
           ticks: {
             color: ink,
             font,
-            stepSize: 0.005,
+            maxTicksLimit: 8,
             callback: (value) => Number(value).toFixed(3),
           },
         },
@@ -143,7 +225,24 @@ async function main() {
   chart.update();
 
   document.getElementById("summary").textContent =
-    `${curve.star_id} during transit. ${curve.instrument} relative photometry from ${curve.source}. Time is orbital phase times the ${curve.period_days}-day period. The line is a transit model fit to these points.`;
+    `${curve.star_id} during transit. ${curve.instrument} relative photometry from ${curve.source}. Drag on the chart to zoom, scroll to zoom in/out, Shift+drag to pan, and hover to read individual points.`;
+
+  document.getElementById("showModel").addEventListener("change", (event) => {
+    chart.setDatasetVisibility(1, event.target.checked);
+    chart.update();
+  });
+
+  document.getElementById("resetZoom").addEventListener("click", () => {
+    chart.resetZoom();
+    chart.$crosshairX = null;
+    setReadout("Hover over the chart to inspect a measurement.");
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    chart.$crosshairX = null;
+    setReadout("Hover over the chart to inspect a measurement.");
+    chart.draw();
+  });
 }
 
 main().catch((error) => {

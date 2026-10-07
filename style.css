@@ -22,12 +22,46 @@ h1 {
 }
 
 #summary {
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   line-height: 1.4;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.control {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  cursor: pointer;
+}
+
+button {
+  font: inherit;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #111;
+  background: #fff;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f3f3f3;
+}
+
+#readout {
+  margin: 0 0 0.75rem;
+  min-height: 1.4em;
+  font-variant-numeric: tabular-nums;
 }
 
 .chart-wrap {
   background: #fff;
   border: 1px solid #111;
   padding: 0.75rem 0.75rem 0.25rem;
+  cursor: crosshair;
 }

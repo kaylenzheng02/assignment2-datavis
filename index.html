@@ -5,12 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TrES-2 light curve</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
     <h1>TrES-2</h1>
     <p id="summary">Loading light curve…</p>
+    <div class="controls">
+      <label class="control">
+        <input id="showModel" type="checkbox" checked>
+        Show transit model
+      </label>
+      <button id="resetZoom" type="button">Reset zoom</button>
+    </div>
+    <p id="readout" aria-live="polite">Hover over the chart to inspect a measurement.</p>
     <div class="chart-wrap">
       <canvas id="magChart" aria-label="Relative flux versus time from mid-transit"></canvas>
     </div>
