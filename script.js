@@ -1,4 +1,5 @@
-const font = { family: '"Times New Roman", Times, serif', size: 16 };
+const fontFamily = '"Geist Sans", system-ui, sans-serif';
+const font = { family: fontFamily, size: 14 };
 const ink = "#111";
 
 const viewLimits = {
@@ -52,7 +53,7 @@ const seriesLabel = {
     const { ctx, chartArea } = chart;
     ctx.save();
     ctx.fillStyle = ink;
-    ctx.font = "italic 18px \"Times New Roman\", Times, serif";
+    ctx.font = `italic 16px ${fontFamily}`;
     ctx.textAlign = "right";
     ctx.textBaseline = "top";
     ctx.fillText(label, chartArea.right - 8, chartArea.top + 6);
@@ -96,6 +97,10 @@ function setReadout(text) {
 }
 
 async function main() {
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
   const response = await fetch("tres2-lightcurve.json");
   if (!response.ok) {
     throw new Error(`Could not load light curve (${response.status})`);
@@ -225,7 +230,7 @@ async function main() {
   chart.update();
 
   document.getElementById("summary").textContent =
-    `${curve.star_id} during transit. ${curve.instrument} relative photometry from ${curve.source}. Drag on the chart to zoom, scroll to zoom in/out, Shift+drag to pan, and hover to read individual points.`;
+    `${curve.star_id} · ${curve.instrument} photometry · ${curve.source} · orbital period ${curve.period_days} days`;
 
   document.getElementById("showModel").addEventListener("change", (event) => {
     chart.setDatasetVisibility(1, event.target.checked);

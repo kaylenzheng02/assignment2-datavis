@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TrES-2 light curve</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/400.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/600.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/400-italic.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <link rel="stylesheet" href="style.css">
@@ -11,7 +14,32 @@
 <body>
   <main>
     <h1>TrES-2</h1>
-    <p id="summary">Loading light curve…</p>
+    <p class="description">
+      This chart plots <strong>relative flux</strong>—how bright the star looks compared to normal—
+      versus time around a <strong>transit</strong>, when exoplanet TrES-2 passes in front of the star
+      and blocks a small fraction of its light. Values near 1 are normal brightness; the dip in the
+      middle is the transit. Hover for measurements, toggle the model line, or zoom in to explore the shape.
+    </p>
+    <p id="summary" class="meta">Loading data…</p>
+    <section class="figures" aria-labelledby="figures-heading">
+      <h2 id="figures-heading">TrES-2 in images</h2>
+      <div class="figure-grid">
+        <figure>
+          <img src="./assets/tres2-kepler-field.jpg" alt="Kepler image centered on the star TrES-2" loading="lazy" decoding="async">
+          <figcaption>
+            Kepler first-light zoom on the field around <strong>TrES-2</strong> (host of hot Jupiter TrES-2b).
+            NASA/JPL-Caltech, PIA11985.
+          </figcaption>
+        </figure>
+        <figure>
+          <img src="./assets/tres2-kepler-labels.jpg" alt="Kepler focal plane with TrES-2 labeled" loading="lazy" decoding="async">
+          <figcaption>
+            Kepler focal-plane image with <strong>TrES-2</strong> outlined among stars in the Kepler field.
+            NASA/Ames/JPL-Caltech, PIA11984.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
     <div class="controls">
       <label class="control">
         <input id="showModel" type="checkbox" checked>
