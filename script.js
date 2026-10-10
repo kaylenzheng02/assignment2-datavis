@@ -95,13 +95,45 @@ function setReadout(text) {
   document.getElementById("readout").textContent = text;
 }
 
-async function main() {
-  const response = await fetch("tres2-lightcurve.json");
-  if (!response.ok) {
-    throw new Error(`Could not load light curve (${response.status})`);
+function formatMag(value) {
+  return value == null ? "—" : value.toFixed(3);
+}
+
+function catalogBlurb(catalog, star, curve) {
+  if (!star) {
+    return `Could not find ${curve.star_id} in TRESCSV.json (${catalog.count.toLocaleString()} stars).`;
   }
 
-  const curve = await response.json();
+  return [
+    `${curve.name} is ${star.star_id} in TRESCSV.json`,
+    `(${catalog.count.toLocaleString()} stars from the ${catalog.source}).`,
+    `Sky position: RA ${star.ra}°, Dec ${star.dec}°.`,
+    `Catalog magnitudes: B ${formatMag(star.bmag)}, V ${formatMag(star.vmag)}, R ${star.rmag.toFixed(3)} ± ${star.rerr.toFixed(3)}.`,
+    `The archive lists ${star.npts.toLocaleString()} light-curve points in filter ${star.lcfil};`,
+    `this chart shows phased IAC80 relative flux near transit from ${curve.source}.`,
+  ].join(" ");
+}
+
+async function main() {
+  const [curveResponse, catalogResponse] = await Promise.all([
+    fetch("tres2-lightcurve.json"),
+    fetch("TRESCSV.json"),
+  ]);
+  if (!curveResponse.ok) {
+    throw new Error(`Could not load light curve (${curveResponse.status})`);
+  }
+  if (!catalogResponse.ok) {
+    throw new Error(`Could not load catalog (${catalogResponse.status})`);
+  }
+
+  const curve = await curveResponse.json();
+  const catalog = await catalogResponse.json();
+  const star = catalog.stars.find((entry) => entry.star_id === curve.star_id);
+  document.getElementById("catalogText").textContent = catalogBlurb(
+    catalog,
+    star,
+    curve,
+  );
   const canvas = document.getElementById("magChart");
   const chart = new Chart(canvas, {
     type: "scatter",
