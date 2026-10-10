@@ -19,7 +19,7 @@ Then visit [http://127.0.0.1:8765/](http://127.0.0.1:8765/).
 - **Points + error bars:** measurements from IAC80 (Rabus et al. 2009, via VizieR).
 - **Solid line:** a simple transit model fit to those points.
 
-The **“From the TrES catalog”** box on the page pulls the matching row from **`TRESCSV.json`** (RA/Dec, R magnitude, number of archive light-curve points) so the plot is tied to the full survey catalog.
+TrES-2 corresponds to catalog star **`TrES_Lyr1_01614`** in **`TRESCSV.json`** (NASA Exoplanet Archive metadata for the TrES Lyr1 field).
 
 ## Interactivity
 
