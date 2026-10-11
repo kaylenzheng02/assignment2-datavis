@@ -2,8 +2,10 @@ const fontFamily = '"Geist Sans", system-ui, sans-serif';
 const font = { family: fontFamily, size: 14 };
 const ink = "#111";
 
+const HOURS_PER_DAY = 24;
+
 const viewLimits = {
-  x: { min: -0.1, max: 0.1 },
+  x: { min: -2.4, max: 2.4 },
   y: { min: 0.975, max: 1.012 },
 };
 
@@ -88,8 +90,16 @@ function axisOptions(title) {
   };
 }
 
-function formatReadout(time, flux, err) {
-  return `t = ${time.toFixed(4)} days · flux = ${flux.toFixed(4)} ± ${err.toFixed(4)}`;
+function formatWhen(hours) {
+  const clock = Math.abs(hours).toFixed(2);
+  if (hours < -0.05) return `${clock} hours before the middle`;
+  if (hours > 0.05) return `${clock} hours after the middle`;
+  return "the middle of the transit";
+}
+
+function formatReadout(hours, flux, err) {
+  const percent = (flux * 100).toFixed(1);
+  return `${formatWhen(hours)} · flux ${flux.toFixed(4)} (${percent}% of normal brightness) ± ${err.toFixed(4)}`;
 }
 
 function setReadout(text) {
@@ -115,7 +125,7 @@ async function main() {
       datasets: [
         {
           label: curve.instrument,
-          data: curve.points.map(([t, flux]) => ({ x: t, y: flux })),
+          data: curve.points.map(([t, flux]) => ({ x: t * HOURS_PER_DAY, y: flux })),
           pointRadius: 0,
           pointHoverRadius: 4,
           pointHitRadius: 12,
@@ -123,7 +133,7 @@ async function main() {
         {
           label: "Transit model",
           type: "line",
-          data: curve.model.map(([t, flux]) => ({ x: t, y: flux })),
+          data: curve.model.map(([t, flux]) => ({ x: t * HOURS_PER_DAY, y: flux })),
           pointRadius: 0,
           borderColor: ink,
           borderWidth: 1.5,
@@ -154,7 +164,7 @@ async function main() {
 
         const [time, flux, err] = curve.points[item.index];
         chart.$crosshairX = item.element.x;
-        setReadout(formatReadout(time, flux, err));
+        setReadout(formatReadout(time * HOURS_PER_DAY, flux, err));
         chart.draw();
       },
       plugins: {
@@ -162,21 +172,21 @@ async function main() {
         tooltip: {
           callbacks: {
             title(items) {
-              const item = items[0];
-              return `t = ${item.parsed.x.toFixed(4)} days`;
+              return formatWhen(items[0].parsed.x);
             },
             label(item) {
+              const percent = (item.parsed.y * 100).toFixed(1);
               if (item.datasetIndex === 1) {
-                return `model flux ${item.parsed.y.toFixed(4)}`;
+                return `model ${item.parsed.y.toFixed(4)} (${percent}% of normal)`;
               }
               const err = curve.points[item.dataIndex][2];
-              return `flux ${item.parsed.y.toFixed(4)} ± ${err.toFixed(4)}`;
+              return `flux ${item.parsed.y.toFixed(4)} (${percent}% of normal) ± ${err.toFixed(4)}`;
             },
           },
         },
         zoom: {
           limits: {
-            x: { min: -0.12, max: 0.12, minRange: 0.01 },
+            x: { min: -2.88, max: 2.88, minRange: 0.24 },
             y: { min: 0.97, max: 1.015, minRange: 0.002 },
           },
           pan: {
@@ -199,7 +209,7 @@ async function main() {
       },
       scales: {
         x: {
-          ...axisOptions("time from center of transit (days)"),
+          ...axisOptions("hours before (−) or after (+) the middle"),
           type: "linear",
           min: viewLimits.x.min,
           max: viewLimits.x.max,
@@ -207,11 +217,11 @@ async function main() {
             color: ink,
             font,
             maxTicksLimit: 9,
-            callback: (value) => Number(value).toFixed(2),
+            callback: (value) => Number(value).toFixed(1),
           },
         },
         y: {
-          ...axisOptions("relative flux"),
+          ...axisOptions("relative flux (1 = normal brightness)"),
           min: viewLimits.y.min,
           max: viewLimits.y.max,
           ticks: {

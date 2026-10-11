@@ -15,10 +15,9 @@
   <main>
     <h1>TrES-2</h1>
     <p class="description">
-      This chart plots <strong>relative flux</strong>—how bright the star looks compared to normal—
-      versus time around a <strong>transit</strong>, when exoplanet TrES-2 passes in front of the star
-      and blocks a small fraction of its light. Values near 1 are normal brightness; the dip in the
-      middle is the transit. Hover for measurements, toggle the model line, or zoom in to explore the shape.
+      TrES-2 is a star with a planet that passes in front of it about every 2.5 days.
+      During that crossing, called a transit, the star looks a little dimmer because the planet blocks a small part of its light.
+      The chart plots that change: relative flux, brightness compared with normal, against hours around the middle of the transit.
     </p>
     <p id="summary" class="meta">Loading data…</p>
     <section class="figures" aria-labelledby="figures-heading">
@@ -27,17 +26,32 @@
         <figure>
           <img src="./assets/tres2-kepler-field.jpg" alt="Kepler image centered on the star TrES-2" loading="lazy" decoding="async">
           <figcaption>
-            Kepler first-light zoom on the field around <strong>TrES-2</strong> (host of hot Jupiter TrES-2b).
+            A close view of the sky around the star <strong>TrES-2</strong>.
             NASA/JPL-Caltech, PIA11985.
           </figcaption>
         </figure>
         <figure>
           <img src="./assets/tres2-kepler-labels.jpg" alt="Kepler focal plane with TrES-2 labeled" loading="lazy" decoding="async">
           <figcaption>
-            Kepler focal-plane image with <strong>TrES-2</strong> outlined among stars in the Kepler field.
+            A wider photo of the same patch of sky, with <strong>TrES-2</strong> marked.
             NASA/Ames/JPL-Caltech, PIA11984.
           </figcaption>
         </figure>
+      </div>
+    </section>
+    <section class="read-chart" aria-labelledby="read-heading">
+      <h2 id="read-heading">How to read the chart</h2>
+      <div class="read-grid">
+        <article>
+          <h3>Left to right is time</h3>
+          <p><strong>0</strong> is the middle, when the planet is straight in front of the star.</p>
+          <p>Numbers on the left are hours <em>before</em> that moment. Numbers on the right are hours <em>after</em>.</p>
+        </article>
+        <article>
+          <h3>Up and down is brightness</h3>
+          <p><strong>1.00</strong> means the star looks as bright as usual.</p>
+          <p>The dip, near <strong>0.98</strong>, means it looks a little dimmer. The planet is blocking a small part of its light.</p>
+        </article>
       </div>
     </section>
     <div class="controls">
@@ -49,7 +63,7 @@
     </div>
     <p id="readout" aria-live="polite">Hover over the chart to inspect a measurement.</p>
     <div class="chart-wrap">
-      <canvas id="magChart" aria-label="Relative flux versus time from mid-transit"></canvas>
+      <canvas id="magChart" aria-label="Relative flux versus hours from the middle of the transit"></canvas>
     </div>
   </main>
   <script src="script.js"></script>
