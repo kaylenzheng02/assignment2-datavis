@@ -260,6 +260,145 @@ async function main() {
   });
 }
 
-main().catch((error) => {
-  document.getElementById("summary").textContent = error.message;
-});
+const TRES_ID = "TrES_Lyr1_01614";
+
+function formatSky(star) {
+  const magnitude = star.vmag == null ? "no V magnitude" : `V = ${Number(star.vmag).toFixed(3)}`;
+  return `${star.star_id} · RA ${star.ra.toFixed(3)}° · Dec ${star.dec.toFixed(3)}° · ${magnitude} · ${star.npts.toLocaleString()} light-curve points`;
+}
+
+function setSkyReadout(text) {
+  document.getElementById("skyReadout").textContent = text;
+}
+
+const tresLabel = {
+  id: "tresLabel",
+  afterDatasetsDraw(chart) {
+    const meta = chart.getDatasetMeta(1);
+    const point = meta.data[0];
+    if (!point || point.skip) return;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.fillStyle = ink;
+    ctx.font = `600 13px ${fontFamily}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("TrES-2", point.x + 8, point.y);
+    ctx.restore();
+  },
+};
+
+async function renderSky() {
+  const response = await fetch("TRESCSV.json");
+  if (!response.ok) {
+    throw new Error(`Could not load the catalog (${response.status})`);
+  }
+
+  const catalog = await response.json();
+  const stars = catalog.stars;
+  const tres = stars.find((star) => star.star_id === TRES_ID);
+  const field = stars
+    .filter((star) => star.star_id !== TRES_ID)
+    .sort((a, b) => a.ra - b.ra);
+  const canvas = document.getElementById("skyChart");
+  const chart = new Chart(canvas, {
+    type: "scatter",
+    plugins: [tresLabel],
+    data: {
+      datasets: [
+        {
+          label: "Survey stars",
+          data: field.map((star) => ({ x: star.ra, y: star.dec })),
+          pointRadius: 1.5,
+          pointHoverRadius: 4,
+          pointHitRadius: 4,
+          pointBackgroundColor: "rgba(17, 17, 17, 0.28)",
+          pointBorderWidth: 0,
+          normalized: true,
+        },
+        {
+          label: "TrES-2",
+          data: tres ? [{ x: tres.ra, y: tres.dec }] : [],
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointHitRadius: 8,
+          pointBackgroundColor: ink,
+          pointBorderColor: ink,
+          pointBorderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      aspectRatio: 1.45,
+      animation: false,
+      parsing: false,
+      interaction: {
+        mode: "nearest",
+        intersect: false,
+      },
+      onHover(_event, elements) {
+        if (!elements.length) {
+          setSkyReadout("Hover a star to see its catalog entry.");
+          return;
+        }
+        const item = elements[0];
+        const star = item.datasetIndex === 1 ? tres : field[item.index];
+        setSkyReadout(formatSky(star));
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title(items) {
+              const item = items[0];
+              const star = item.datasetIndex === 1 ? tres : field[item.dataIndex];
+              return star.star_id === TRES_ID ? "TrES-2" : star.star_id;
+            },
+            label(item) {
+              const star = item.datasetIndex === 1 ? tres : field[item.dataIndex];
+              const magnitude = star.vmag == null ? "V —" : `V ${Number(star.vmag).toFixed(3)}`;
+              return `RA ${star.ra.toFixed(3)}° · Dec ${star.dec.toFixed(3)}° · ${magnitude}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ...axisOptions("right ascension (degrees)"),
+          type: "linear",
+          ticks: {
+            color: ink,
+            font,
+            maxTicksLimit: 8,
+            callback: (value) => Number(value).toFixed(1),
+          },
+        },
+        y: {
+          ...axisOptions("declination (degrees)"),
+          ticks: {
+            color: ink,
+            font,
+            maxTicksLimit: 8,
+            callback: (value) => Number(value).toFixed(1),
+          },
+        },
+      },
+    },
+  });
+
+  setSkyReadout(`${stars.length.toLocaleString()} stars. Hover one to see its catalog entry.`);
+  canvas.addEventListener("mouseleave", () => {
+    setSkyReadout(`${stars.length.toLocaleString()} stars. Hover one to see its catalog entry.`);
+  });
+  return chart;
+}
+
+main()
+  .catch((error) => {
+    document.getElementById("summary").textContent = error.message;
+  })
+  .then(() => renderSky())
+  .catch((error) => {
+    setSkyReadout(error.message);
+  });

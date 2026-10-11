@@ -135,3 +135,19 @@ button:hover {
   padding: 0.75rem 0.75rem 0.25rem;
   cursor: crosshair;
 }
+
+.sky {
+  margin-top: 2rem;
+}
+
+.sky h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+#skyReadout {
+  margin: 0 0 0.75rem;
+  min-height: 1.4em;
+  font-variant-numeric: tabular-nums;
+}
