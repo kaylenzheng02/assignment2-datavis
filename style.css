@@ -86,7 +86,10 @@ h1 {
 .figures img {
   display: block;
   width: 100%;
-  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  object-position: center;
+  background: #000;
 }
 
 .figures figcaption {
