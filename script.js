@@ -1,13 +1,85 @@
+// TrES-2 page: two Chart.js scatter charts (transit light curve + survey sky map).
+
 const fontFamily = '"Geist Sans", system-ui, sans-serif';
 const font = { family: fontFamily, size: 14 };
 const ink = "#111";
 
 const HOURS_PER_DAY = 24;
 
-const viewLimits = {
+//  zoom on the transit chart (time in hours, flux as a fraction of normal).
+const transitView = {
   x: { min: -2.4, max: 2.4 },
   y: { min: 0.975, max: 1.012 },
 };
+
+// dataset order inside each chart (used when reading hover / tooltip indices).
+const TRANSIT_DATA = 0; // IAC80 measurements
+const TRANSIT_MODEL = 1; // fitted transit curve
+const SKY_FIELD = 0; // all survey stars except TrES-2
+const SKY_TRES = 1; // TrES-2 only
+
+const TRES_ID = "TrES_Lyr1_01614";
+
+function axisOptions(title) {
+  return {
+    title: { display: true, text: title, color: ink, font, padding: 8 },
+    ticks: { color: ink, font },
+    grid: { color: "rgba(0, 0, 0, 0.18)" },
+    border: { color: ink },
+  };
+}
+
+async function loadJson(url, label) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Could not load ${label} (${response.status})`);
+  }
+  return response.json();
+}
+
+function hoursFromDays(days) {
+  return days * HOURS_PER_DAY;
+}
+
+// Each light-curve row is [time in days, flux, uncertainty].
+function transitPoint(row) {
+  return { x: hoursFromDays(row[0]), y: row[1] };
+}
+
+function formatWhen(hours) {
+  const clock = Math.abs(hours).toFixed(2);
+  if (hours < -0.05) return `${clock} hours before the middle`;
+  if (hours > 0.05) return `${clock} hours after the middle`;
+  return "the middle of the transit";
+}
+
+function formatTransitReadout(hours, flux, err) {
+  const percent = (flux * 100).toFixed(1);
+  return `${formatWhen(hours)} · flux ${flux.toFixed(4)} (${percent}% of normal brightness) ± ${err.toFixed(4)}`;
+}
+
+function setReadout(text) {
+  document.getElementById("readout").textContent = text;
+}
+
+function formatSky(star) {
+  const magnitude =
+    star.vmag == null ? "no V magnitude" : `V = ${Number(star.vmag).toFixed(3)}`;
+  return `${star.star_id} · RA ${star.ra.toFixed(3)}° · Dec ${star.dec.toFixed(3)}° · ${magnitude} · ${star.npts.toLocaleString()} light-curve points`;
+}
+
+function setSkyReadout(text) {
+  document.getElementById("skyReadout").textContent = text;
+}
+
+// Hover gives a dataset index + point index; full star rows live in tres / field arrays.
+function starFromHover(item, tres, field) {
+  if (item.datasetIndex === SKY_TRES) {
+    return tres;
+  }
+  const pointIndex = item.dataIndex ?? item.index;
+  return field[pointIndex];
+}
 
 const errorBars = {
   id: "errorBars",
@@ -15,7 +87,7 @@ const errorBars = {
     const points = chart.$points;
     if (!points) return;
 
-    const meta = chart.getDatasetMeta(0);
+    const meta = chart.getDatasetMeta(TRANSIT_DATA);
     if (meta.hidden) return;
 
     const yScale = chart.scales.y;
@@ -29,8 +101,9 @@ const errorBars = {
 
     meta.data.forEach((point, index) => {
       if (point.skip) return;
-      const err = points[index][2];
-      const flux = points[index][1];
+      const row = points[index];
+      const flux = row[1];
+      const err = row[2];
       const top = yScale.getPixelForValue(flux + err);
       const bottom = yScale.getPixelForValue(flux - err);
       ctx.beginPath();
@@ -81,42 +154,30 @@ const crosshair = {
   },
 };
 
-function axisOptions(title) {
-  return {
-    title: { display: true, text: title, color: ink, font, padding: 8 },
-    ticks: { color: ink, font },
-    grid: { color: "rgba(0, 0, 0, 0.18)" },
-    border: { color: ink },
-  };
-}
+const tresLabel = {
+  id: "tresLabel",
+  afterDatasetsDraw(chart) {
+    const meta = chart.getDatasetMeta(SKY_TRES);
+    const point = meta.data[0];
+    if (!point || point.skip) return;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.fillStyle = ink;
+    ctx.font = `600 13px ${fontFamily}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("TrES-2", point.x + 8, point.y);
+    ctx.restore();
+  },
+};
 
-function formatWhen(hours) {
-  const clock = Math.abs(hours).toFixed(2);
-  if (hours < -0.05) return `${clock} hours before the middle`;
-  if (hours > 0.05) return `${clock} hours after the middle`;
-  return "the middle of the transit";
-}
-
-function formatReadout(hours, flux, err) {
-  const percent = (flux * 100).toFixed(1);
-  return `${formatWhen(hours)} · flux ${flux.toFixed(4)} (${percent}% of normal brightness) ± ${err.toFixed(4)}`;
-}
-
-function setReadout(text) {
-  document.getElementById("readout").textContent = text;
-}
-
+// --- Transit chart ---
 async function main() {
   if (document.fonts?.ready) {
     await document.fonts.ready;
   }
 
-  const response = await fetch("tres2-lightcurve.json");
-  if (!response.ok) {
-    throw new Error(`Could not load light curve (${response.status})`);
-  }
-
-  const curve = await response.json();
+  const curve = await loadJson("tres2-lightcurve.json", "light curve");
   const canvas = document.getElementById("magChart");
   const chart = new Chart(canvas, {
     type: "scatter",
@@ -125,7 +186,7 @@ async function main() {
       datasets: [
         {
           label: curve.instrument,
-          data: curve.points.map(([t, flux]) => ({ x: t * HOURS_PER_DAY, y: flux })),
+          data: curve.points.map(transitPoint),
           pointRadius: 0,
           pointHoverRadius: 4,
           pointHitRadius: 12,
@@ -133,7 +194,7 @@ async function main() {
         {
           label: "Transit model",
           type: "line",
-          data: curve.model.map(([t, flux]) => ({ x: t * HOURS_PER_DAY, y: flux })),
+          data: curve.model.map(transitPoint),
           pointRadius: 0,
           borderColor: ink,
           borderWidth: 1.5,
@@ -160,11 +221,14 @@ async function main() {
         }
 
         const item = elements[0];
-        if (item.datasetIndex !== 0) return;
+        if (item.datasetIndex !== TRANSIT_DATA) return;
 
-        const [time, flux, err] = curve.points[item.index];
+        const row = curve.points[item.index];
+        const timeDays = row[0];
+        const flux = row[1];
+        const err = row[2];
         chart.$crosshairX = item.element.x;
-        setReadout(formatReadout(time * HOURS_PER_DAY, flux, err));
+        setReadout(formatTransitReadout(hoursFromDays(timeDays), flux, err));
         chart.draw();
       },
       plugins: {
@@ -176,7 +240,7 @@ async function main() {
             },
             label(item) {
               const percent = (item.parsed.y * 100).toFixed(1);
-              if (item.datasetIndex === 1) {
+              if (item.datasetIndex === TRANSIT_MODEL) {
                 return `model ${item.parsed.y.toFixed(4)} (${percent}% of normal)`;
               }
               const err = curve.points[item.dataIndex][2];
@@ -211,8 +275,8 @@ async function main() {
         x: {
           ...axisOptions("hours before (−) or after (+) the middle"),
           type: "linear",
-          min: viewLimits.x.min,
-          max: viewLimits.x.max,
+          min: transitView.x.min,
+          max: transitView.x.max,
           ticks: {
             color: ink,
             font,
@@ -222,8 +286,8 @@ async function main() {
         },
         y: {
           ...axisOptions("relative flux (1 = normal brightness)"),
-          min: viewLimits.y.min,
-          max: viewLimits.y.max,
+          min: transitView.y.min,
+          max: transitView.y.max,
           ticks: {
             color: ink,
             font,
@@ -243,7 +307,7 @@ async function main() {
     `${curve.star_id} · ${curve.instrument} photometry · ${curve.source} · orbital period ${curve.period_days} days`;
 
   document.getElementById("showModel").addEventListener("change", (event) => {
-    chart.setDatasetVisibility(1, event.target.checked);
+    chart.setDatasetVisibility(TRANSIT_MODEL, event.target.checked);
     chart.update();
   });
 
@@ -260,46 +324,14 @@ async function main() {
   });
 }
 
-const TRES_ID = "TrES_Lyr1_01614";
-
-function formatSky(star) {
-  const magnitude = star.vmag == null ? "no V magnitude" : `V = ${Number(star.vmag).toFixed(3)}`;
-  return `${star.star_id} · RA ${star.ra.toFixed(3)}° · Dec ${star.dec.toFixed(3)}° · ${magnitude} · ${star.npts.toLocaleString()} light-curve points`;
-}
-
-function setSkyReadout(text) {
-  document.getElementById("skyReadout").textContent = text;
-}
-
-const tresLabel = {
-  id: "tresLabel",
-  afterDatasetsDraw(chart) {
-    const meta = chart.getDatasetMeta(1);
-    const point = meta.data[0];
-    if (!point || point.skip) return;
-    const { ctx } = chart;
-    ctx.save();
-    ctx.fillStyle = ink;
-    ctx.font = `600 13px ${fontFamily}`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText("TrES-2", point.x + 8, point.y);
-    ctx.restore();
-  },
-};
-
-async function renderSky() {
-  const response = await fetch("TRESCSV.json");
-  if (!response.ok) {
-    throw new Error(`Could not load the catalog (${response.status})`);
-  }
-
-  const catalog = await response.json();
+  async function renderSky() {
+  const catalog = await loadJson("TRESCSV.json", "the catalog");
   const stars = catalog.stars;
   const tres = stars.find((star) => star.star_id === TRES_ID);
   const field = stars
     .filter((star) => star.star_id !== TRES_ID)
     .sort((a, b) => a.ra - b.ra);
+
   const canvas = document.getElementById("skyChart");
   const chart = new Chart(canvas, {
     type: "scatter",
@@ -342,8 +374,7 @@ async function renderSky() {
           setSkyReadout("Hover a star to see its catalog entry.");
           return;
         }
-        const item = elements[0];
-        const star = item.datasetIndex === 1 ? tres : field[item.index];
+        const star = starFromHover(elements[0], tres, field);
         setSkyReadout(formatSky(star));
       },
       plugins: {
@@ -351,13 +382,13 @@ async function renderSky() {
         tooltip: {
           callbacks: {
             title(items) {
-              const item = items[0];
-              const star = item.datasetIndex === 1 ? tres : field[item.dataIndex];
+              const star = starFromHover(items[0], tres, field);
               return star.star_id === TRES_ID ? "TrES-2" : star.star_id;
             },
             label(item) {
-              const star = item.datasetIndex === 1 ? tres : field[item.dataIndex];
-              const magnitude = star.vmag == null ? "V —" : `V ${Number(star.vmag).toFixed(3)}`;
+              const star = starFromHover(item, tres, field);
+              const magnitude =
+                star.vmag == null ? "V —" : `V ${Number(star.vmag).toFixed(3)}`;
               return `RA ${star.ra.toFixed(3)}° · Dec ${star.dec.toFixed(3)}° · ${magnitude}`;
             },
           },
@@ -387,9 +418,10 @@ async function renderSky() {
     },
   });
 
-  setSkyReadout(`${stars.length.toLocaleString()} stars. Hover one to see its catalog entry.`);
+  const defaultSkyText = `${stars.length.toLocaleString()} stars. Hover one to see its catalog entry.`;
+  setSkyReadout(defaultSkyText);
   canvas.addEventListener("mouseleave", () => {
-    setSkyReadout(`${stars.length.toLocaleString()} stars. Hover one to see its catalog entry.`);
+    setSkyReadout(defaultSkyText);
   });
   return chart;
 }
