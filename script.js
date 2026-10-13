@@ -1,4 +1,4 @@
-// TrES-2 page: two Chart.js scatter charts (transit light curve + survey sky map).
+// TrES-2 page: Chart.js transit light curve.
 
 const fontFamily = '"Geist Sans", system-ui, sans-serif';
 const font = { family: fontFamily, size: 14 };
@@ -12,13 +12,9 @@ const transitView = {
   y: { min: 0.975, max: 1.012 },
 };
 
-// dataset order inside each chart (used when reading hover / tooltip indices).
+// dataset order inside the transit chart (used when reading hover / tooltip indices).
 const TRANSIT_DATA = 0; // IAC80 measurements
 const TRANSIT_MODEL = 1; // fitted transit curve
-const SKY_FIELD = 0; // all survey stars except TrES-2
-const SKY_TRES = 1; // TrES-2 only
-
-const TRES_ID = "TrES_Lyr1_01614";
 
 function axisOptions(title) {
   return {
@@ -60,25 +56,6 @@ function formatTransitReadout(hours, flux, err) {
 
 function setReadout(text) {
   document.getElementById("readout").textContent = text;
-}
-
-function formatSky(star) {
-  const magnitude =
-    star.vmag == null ? "no V magnitude" : `V = ${Number(star.vmag).toFixed(3)}`;
-  return `${star.star_id} · RA ${star.ra.toFixed(3)}° · Dec ${star.dec.toFixed(3)}° · ${magnitude} · ${star.npts.toLocaleString()} light-curve points`;
-}
-
-function setSkyReadout(text) {
-  document.getElementById("skyReadout").textContent = text;
-}
-
-// Hover gives a dataset index + point index; full star rows live in tres / field arrays.
-function starFromHover(item, tres, field) {
-  if (item.datasetIndex === SKY_TRES) {
-    return tres;
-  }
-  const pointIndex = item.dataIndex ?? item.index;
-  return field[pointIndex];
 }
 
 const errorBars = {
@@ -150,23 +127,6 @@ const crosshair = {
     ctx.moveTo(x, chartArea.top);
     ctx.lineTo(x, chartArea.bottom);
     ctx.stroke();
-    ctx.restore();
-  },
-};
-
-const tresLabel = {
-  id: "tresLabel",
-  afterDatasetsDraw(chart) {
-    const meta = chart.getDatasetMeta(SKY_TRES);
-    const point = meta.data[0];
-    if (!point || point.skip) return;
-    const { ctx } = chart;
-    ctx.save();
-    ctx.fillStyle = ink;
-    ctx.font = `600 13px ${fontFamily}`;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText("TrES-2", point.x + 8, point.y);
     ctx.restore();
   },
 };
@@ -324,113 +284,6 @@ async function main() {
   });
 }
 
-  async function renderSky() {
-  const catalog = await loadJson("TRESCSV.json", "the catalog");
-  const stars = catalog.stars;
-  const tres = stars.find((star) => star.star_id === TRES_ID);
-  const field = stars
-    .filter((star) => star.star_id !== TRES_ID)
-    .sort((a, b) => a.ra - b.ra);
-
-  const canvas = document.getElementById("skyChart");
-  const chart = new Chart(canvas, {
-    type: "scatter",
-    plugins: [tresLabel],
-    data: {
-      datasets: [
-        {
-          label: "Survey stars",
-          data: field.map((star) => ({ x: star.ra, y: star.dec })),
-          pointRadius: 1.5,
-          pointHoverRadius: 4,
-          pointHitRadius: 4,
-          pointBackgroundColor: "rgba(17, 17, 17, 0.28)",
-          pointBorderWidth: 0,
-          normalized: true,
-        },
-        {
-          label: "TrES-2",
-          data: tres ? [{ x: tres.ra, y: tres.dec }] : [],
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointHitRadius: 8,
-          pointBackgroundColor: ink,
-          pointBorderColor: ink,
-          pointBorderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      aspectRatio: 1.45,
-      animation: false,
-      parsing: false,
-      interaction: {
-        mode: "nearest",
-        intersect: false,
-      },
-      onHover(_event, elements) {
-        if (!elements.length) {
-          setSkyReadout("Hover a star to see its catalog entry.");
-          return;
-        }
-        const star = starFromHover(elements[0], tres, field);
-        setSkyReadout(formatSky(star));
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title(items) {
-              const star = starFromHover(items[0], tres, field);
-              return star.star_id === TRES_ID ? "TrES-2" : star.star_id;
-            },
-            label(item) {
-              const star = starFromHover(item, tres, field);
-              const magnitude =
-                star.vmag == null ? "V —" : `V ${Number(star.vmag).toFixed(3)}`;
-              return `RA ${star.ra.toFixed(3)}° · Dec ${star.dec.toFixed(3)}° · ${magnitude}`;
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          ...axisOptions("right ascension (degrees)"),
-          type: "linear",
-          ticks: {
-            color: ink,
-            font,
-            maxTicksLimit: 8,
-            callback: (value) => Number(value).toFixed(1),
-          },
-        },
-        y: {
-          ...axisOptions("declination (degrees)"),
-          ticks: {
-            color: ink,
-            font,
-            maxTicksLimit: 8,
-            callback: (value) => Number(value).toFixed(1),
-          },
-        },
-      },
-    },
-  });
-
-  const defaultSkyText = `${stars.length.toLocaleString()} stars. Hover one to see its catalog entry.`;
-  setSkyReadout(defaultSkyText);
-  canvas.addEventListener("mouseleave", () => {
-    setSkyReadout(defaultSkyText);
-  });
-  return chart;
-}
-
-main()
-  .catch((error) => {
-    document.getElementById("summary").textContent = error.message;
-  })
-  .then(() => renderSky())
-  .catch((error) => {
-    setSkyReadout(error.message);
-  });
+main().catch((error) => {
+  document.getElementById("summary").textContent = error.message;
+});

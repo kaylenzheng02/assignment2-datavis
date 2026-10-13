@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TrES-2 survey sphere</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/400.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/600.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <main>
+    <p class="back"><a href="../index.html">TrES-2 light curve</a></p>
+    <h1>Every star in the survey</h1>
+    <p class="description">
+      Each dot is one star from the TrES Lyr1 catalog, placed on a celestial sphere.
+      Drag to turn the sky. Scroll to zoom.
+      The grid is right ascension and declination, like longitude and latitude on Earth.
+      The bright outline is the patch the survey covers.
+      <strong>TrES-2</strong> is the marked point.
+    </p>
+    <div class="controls">
+      <button id="resetSky" type="button">Reset view</button>
+    </div>
+    <p id="skyReadout">Loading the catalog…</p>
+    <div class="sky-stage" id="skyStage">
+      <canvas id="skyChart" aria-label="Rotatable celestial sphere of every star in the TrES Lyr1 catalog"></canvas>
+      <span id="tresMarker" hidden>TrES-2</span>
+      <p class="sky-hint">Drag to rotate · scroll to zoom</p>
+    </div>
+  </main>
+  <script type="module" src="script.js"></script>
+</body>
+</html>

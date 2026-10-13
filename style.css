@@ -139,18 +139,25 @@ button:hover {
   cursor: crosshair;
 }
 
-.sky {
+.more {
   margin-top: 2rem;
 }
 
-.sky h2 {
+.more h2 {
   margin: 0 0 0.45rem;
   font-size: 1rem;
   font-weight: 600;
 }
 
-#skyReadout {
-  margin: 0 0 0.75rem;
-  min-height: 1.4em;
-  font-variant-numeric: tabular-nums;
+a.button {
+  display: inline-block;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #111;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.button:hover {
+  background: #f3f3f3;
 }

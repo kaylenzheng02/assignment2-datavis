@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/400-italic.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-  <link rel="stylesheet" href="style.css?v=figures">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
@@ -65,19 +65,15 @@
     <div class="chart-wrap">
       <canvas id="magChart" aria-label="Relative flux versus hours from the middle of the transit"></canvas>
     </div>
-    <section class="sky" aria-labelledby="sky-heading">
-      <h2 id="sky-heading">Every star in the survey</h2>
+    <section class="more" aria-labelledby="survey-heading">
+      <h2 id="survey-heading">Every star in the survey</h2>
       <p class="description">
-        Each dot is one star from the TrES Lyr1 catalog, plotted by its place in the sky.
-        Right ascension runs left to right. Declination runs up and down.
-        <strong>TrES-2</strong> is the marked point.
+        The second view places every star in the TrES Lyr1 catalog on a celestial sphere.
+        Drag to turn the sky, and scroll to zoom in on <strong>TrES-2</strong>.
       </p>
-      <p id="skyReadout">Loading the catalog…</p>
-      <div class="chart-wrap">
-        <canvas id="skyChart" aria-label="Right ascension versus declination for every star in the TrES Lyr1 catalog"></canvas>
-      </div>
+      <a class="button" href="survey/index.html">Open the survey sphere</a>
     </section>
   </main>
-  <script src="script.js?v=survey"></script>
+  <script src="script.js"></script>
 </body>
 </html>
