@@ -10,6 +10,14 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 <body>
   <main>
@@ -65,15 +73,32 @@
     <div class="chart-wrap">
       <canvas id="magChart" aria-label="Relative flux versus hours from the middle of the transit"></canvas>
     </div>
-    <section class="more" aria-labelledby="survey-heading">
+    <section class="survey" aria-labelledby="survey-heading">
       <h2 id="survey-heading">Every star in the survey</h2>
       <p class="description">
-        The second view places every star in the TrES Lyr1 catalog on a celestial sphere.
-        Drag to turn the sky, and scroll to zoom in on <strong>TrES-2</strong>.
+        Each dot is one star from the TrES Lyr1 catalog, placed on a celestial sphere.
+        Drag to turn the sky. Scroll to zoom.
+        The grid is right ascension and declination.
+        The bright outline is the patch the survey covers.
+        <strong>TrES-2</strong> is the marked point.
       </p>
-      <a class="button" href="survey/index.html">Open the survey sphere</a>
+      <div class="controls">
+        <button id="resetSky" type="button">Reset view</button>
+      </div>
+      <p id="skyReadout">Loading the catalog…</p>
+      <div class="sky-stage" id="skyStage">
+        <canvas id="skyChart" aria-label="Rotatable celestial sphere of every star in the TrES Lyr1 catalog"></canvas>
+        <span id="tresMarker" hidden>TrES-2</span>
+        <p class="sky-hint">Drag to rotate · scroll to zoom</p>
+      </div>
     </section>
   </main>
   <script src="script.js"></script>
+  <script type="module">
+    import { initSkySphere } from "./sky-sphere.js";
+    initSkySphere().catch((error) => {
+      document.getElementById("skyReadout").textContent = error.message;
+    });
+  </script>
 </body>
 </html>
