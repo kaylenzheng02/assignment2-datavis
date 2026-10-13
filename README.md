@@ -1,6 +1,6 @@
 # Assignment 2 — TrES-2
 
-Two pages for **TrES-2** (catalog star **`TrES_Lyr1_01614`**). A planet passes in front of this star about every 2.5 days. While it does, the star looks a little dimmer. The first page shows that dimming and photos of the star. The second page places every star in the survey on a sphere you can rotate.
+One page for **TrES-2** (catalog star **`TrES_Lyr1_01614`**): transit light curve, photos, and a rotatable survey sphere. A planet passes in front of this star about every 2.5 days; while it does, the star looks a little dimmer. Optional standalone URL: `survey/` (sphere only).
 
 ## Run locally
 
@@ -17,7 +17,7 @@ Then visit [http://127.0.0.1:8765/](http://127.0.0.1:8765/). The survey sphere i
 1. **Summary** — what TrES-2 is, and what the transit chart measures.
 2. **Photos** — a close view of the star and a wider Kepler field with TrES-2 marked.
 3. **Transit chart** — brightness versus time for one crossing, from `tres2-lightcurve.json`.
-4. **Survey sphere** — a second page, `survey/index.html`. Every star in the TrES Lyr1 catalog, from `TRESCSV.json`, on a celestial sphere you can rotate and zoom.
+4. **Survey sphere** — on the same page (scroll down). Every star in the TrES Lyr1 catalog, from `TRESCSV.json`, on a celestial sphere you can rotate and zoom.
 
 ## Transit chart
 
@@ -58,12 +58,13 @@ Drag to rotate, scroll to zoom, and use **Reset view** to return. Hover a star f
 
 | File | Role |
 |------|------|
-| `index.html` | Light-curve page |
-| `style.css` | Light-curve page styling |
-| `script.js` | Loads the light curve and builds the Chart.js chart |
-| `survey/index.html` | Survey sphere page |
-| `survey/style.css` | Survey sphere styling |
-| `survey/script.js` | Loads the catalog and renders the rotatable sphere |
+| `index.html` | Main page (chart + survey sphere) |
+| `style.css` | Shared styling |
+| `script.js` | Chart.js transit light curve |
+| `sky-sphere.js` | Three.js survey sphere |
+| `sky.js` | Starts the sphere on any page that includes it |
+| `utils.js` | Shared `loadJson` helper |
+| `survey/index.html` | Optional sphere-only view (links back to main page) |
 | `tres2-lightcurve.json` | Time, relative flux, uncertainty, and the transit model for TrES-2 |
 | `TRESCSV.json` | NASA catalog of ~25,947 stars in TrES Lyr1 |
 | `assets/` | Kepler images of the TrES-2 field |

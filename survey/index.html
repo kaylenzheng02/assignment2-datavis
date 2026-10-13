@@ -6,7 +6,7 @@
   <title>TrES-2 survey sphere</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/400.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.2.5/600.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../style.css">
   <script type="importmap">
   {
     "imports": {
@@ -30,13 +30,13 @@
     <div class="controls">
       <button id="resetSky" type="button">Reset view</button>
     </div>
-    <p id="skyReadout">Loading the catalog…</p>
+    <p id="skyReadout" class="readout">Loading the catalog…</p>
     <div class="sky-stage" id="skyStage">
       <canvas id="skyChart" aria-label="Rotatable celestial sphere of every star in the TrES Lyr1 catalog"></canvas>
       <span id="tresMarker" hidden>TrES-2</span>
       <p class="sky-hint">Drag to rotate · scroll to zoom</p>
     </div>
   </main>
-  <script type="module" src="script.js"></script>
+  <script type="module" src="../sky.js"></script>
 </body>
 </html>

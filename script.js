@@ -1,4 +1,6 @@
-// TrES-2 page: Chart.js transit light curve.
+// tres-2 transit light curve (chart.js)
+
+import { loadJson } from "./utils.js";
 
 const fontFamily = '"Geist Sans", system-ui, sans-serif';
 const font = { family: fontFamily, size: 14 };
@@ -6,15 +8,15 @@ const ink = "#111";
 
 const HOURS_PER_DAY = 24;
 
-//  zoom on the transit chart (time in hours, flux as a fraction of normal).
+// default axis range: hours from transit center, flux vs normal
 const transitView = {
   x: { min: -2.4, max: 2.4 },
   y: { min: 0.975, max: 1.012 },
 };
 
-// dataset order inside the transit chart (used when reading hover / tooltip indices).
-const TRANSIT_DATA = 0; // IAC80 measurements
-const TRANSIT_MODEL = 1; // fitted transit curve
+// scatter = measurements, line = fitted model
+const TRANSIT_DATA = 0;
+const TRANSIT_MODEL = 1;
 
 function axisOptions(title) {
   return {
@@ -25,19 +27,11 @@ function axisOptions(title) {
   };
 }
 
-async function loadJson(url, label) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Could not load ${label} (${response.status})`);
-  }
-  return response.json();
-}
-
 function hoursFromDays(days) {
   return days * HOURS_PER_DAY;
 }
 
-// Each light-curve row is [time in days, flux, uncertainty].
+// json rows are [time in days, flux, uncertainty]
 function transitPoint(row) {
   return { x: hoursFromDays(row[0]), y: row[1] };
 }
@@ -58,6 +52,7 @@ function setReadout(text) {
   document.getElementById("readout").textContent = text;
 }
 
+// vertical error bars on each measurement
 const errorBars = {
   id: "errorBars",
   afterDatasetsDraw(chart) {
@@ -97,6 +92,7 @@ const errorBars = {
   },
 };
 
+// instrument name in the top-right of the plot area
 const seriesLabel = {
   id: "seriesLabel",
   afterDraw(chart) {
@@ -113,6 +109,7 @@ const seriesLabel = {
   },
 };
 
+// dashed line at the hovered x position
 const crosshair = {
   id: "crosshair",
   afterDraw(chart) {
@@ -131,7 +128,6 @@ const crosshair = {
   },
 };
 
-// --- Transit chart ---
 async function main() {
   if (document.fonts?.ready) {
     await document.fonts.ready;
@@ -259,6 +255,7 @@ async function main() {
     },
   });
 
+  // extra fields used by custom plugins
   chart.$points = curve.points;
   chart.$instrument = curve.instrument;
   chart.update();

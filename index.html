@@ -69,7 +69,7 @@
       </label>
       <button id="resetZoom" type="button">Reset zoom</button>
     </div>
-    <p id="readout" aria-live="polite">Hover over the chart to inspect a measurement.</p>
+    <p id="readout" class="readout" aria-live="polite">Hover over the chart to inspect a measurement.</p>
     <div class="chart-wrap">
       <canvas id="magChart" aria-label="Relative flux versus hours from the middle of the transit"></canvas>
     </div>
@@ -85,7 +85,7 @@
       <div class="controls">
         <button id="resetSky" type="button">Reset view</button>
       </div>
-      <p id="skyReadout">Loading the catalog…</p>
+      <p id="skyReadout" class="readout">Loading the catalog…</p>
       <div class="sky-stage" id="skyStage">
         <canvas id="skyChart" aria-label="Rotatable celestial sphere of every star in the TrES Lyr1 catalog"></canvas>
         <span id="tresMarker" hidden>TrES-2</span>
@@ -93,12 +93,7 @@
       </div>
     </section>
   </main>
-  <script src="script.js"></script>
-  <script type="module">
-    import { initSkySphere } from "./sky-sphere.js";
-    initSkySphere().catch((error) => {
-      document.getElementById("skyReadout").textContent = error.message;
-    });
-  </script>
+  <script type="module" src="script.js"></script>
+  <script type="module" src="sky.js"></script>
 </body>
 </html>

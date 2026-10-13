@@ -1,17 +1,12 @@
-// Survey sphere: every TrES Lyr1 star on a celestial sphere you can rotate and zoom.
+// catalog stars on a rotatable celestial sphere (three.js)
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { loadJson } from "./utils.js";
 
 const TRES_ID = "TrES_Lyr1_01614";
-
-async function loadJson(url, label) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Could not load ${label} (${response.status})`);
-  }
-  return response.json();
-}
+// always load catalog from project root, not the current html path
+const CATALOG_URL = new URL("TRESCSV.json", import.meta.url).href;
 
 function formatSky(star) {
   const magnitude =
@@ -23,7 +18,7 @@ function setSkyReadout(text) {
   document.getElementById("skyReadout").textContent = text;
 }
 
-// Right ascension and declination on a sphere. Y is the north celestial pole.
+// ra/dec in degrees → xyz on a sphere (y = north pole)
 function skyPosition(raDeg, decDeg, radius) {
   const ra = (raDeg * Math.PI) / 180;
   const dec = (decDeg * Math.PI) / 180;
@@ -35,6 +30,7 @@ function skyPosition(raDeg, decDeg, radius) {
   );
 }
 
+// soft dot sprite for field stars and hover accent
 function circleTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 64;
@@ -49,6 +45,7 @@ function circleTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
+// ring sprite for tres-2
 function ringTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 64;
@@ -66,6 +63,7 @@ function pushSegment(positions, a, b) {
   positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
 }
 
+// ra/dec grid lines
 function buildGraticule(radius) {
   const positions = [];
   const steps = 96;
@@ -98,6 +96,7 @@ function buildGraticule(radius) {
   );
 }
 
+// white rectangle around the survey field in ra/dec
 function buildFootprint(radius, raMin, raMax, decMin, decMax) {
   const positions = [];
   const steps = 48;
@@ -126,11 +125,12 @@ function buildFootprint(radius, raMin, raMax, decMin, decMax) {
   );
 }
 
-// A star on the sphere is visible when the camera sits outside that star's tangent plane.
+// front side of the sphere only (ignore stars on the far side)
 function isVisible(position, cameraPosition) {
   return position.dot(cameraPosition) > position.lengthSq();
 }
 
+// nearest ray hit among stars that face the camera
 function closestFacingHit(hits, stars, cameraPosition) {
   let best = null;
   hits.forEach((hit) => {
@@ -143,15 +143,15 @@ function closestFacingHit(hits, stars, cameraPosition) {
   return best;
 }
 
-export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
+export async function initSkySphere() {
   const stage = document.getElementById("skyStage");
   const canvas = document.getElementById("skyChart");
   if (!stage || !canvas) return;
 
-  const catalog = await loadJson(catalogUrl, "the catalog");
+  const catalog = await loadJson(CATALOG_URL, "the catalog");
   const stars = catalog.stars;
   const tres = stars.find((star) => star.star_id === TRES_ID) ?? null;
-  const field = stars.filter((star) => star.star_id !== TRES_ID);
+  const field = stars.filter((star) => star.star_id !== TRES_ID); // everything except tres-2
 
   const marker = document.getElementById("tresMarker");
   const defaultSkyText = `${stars.length.toLocaleString()} stars. Drag to rotate. Hover one to see its catalog entry.`;
@@ -178,12 +178,14 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
   controls.minDistance = 0.06;
   controls.maxDistance = 4;
 
+  // dark globe + coordinate grid
   scene.add(new THREE.Mesh(
     new THREE.SphereGeometry(0.99, 64, 48),
     new THREE.MeshBasicMaterial({ color: 0x141414 }),
   ));
   scene.add(buildGraticule(1.001));
 
+  // bounds of the catalog, used for the survey outline and initial camera aim
   let raMin = Infinity;
   let raMax = -Infinity;
   let decMin = Infinity;
@@ -212,6 +214,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
 
   scene.add(buildFootprint(1.004, raMin, raMax, decMin, decMax));
 
+  // one point per catalog star; per-star color for hover
   const fieldGeometry = new THREE.BufferGeometry();
   fieldGeometry.setAttribute("position", new THREE.BufferAttribute(fieldPositions, 3));
   const fieldColors = new Float32Array(field.length * 3);
@@ -232,6 +235,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
   );
   scene.add(fieldPoints);
 
+  // tres-2 drawn larger, on top of the field
   const tresPosition = tres ? skyPosition(tres.ra, tres.dec, 1.016) : null;
   let tresPoints = null;
   if (tresPosition) {
@@ -256,6 +260,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
     scene.add(tresPoints);
   }
 
+  // bigger red dot on hovered field stars (easier to see than color alone)
   const hoverAccentGeometry = new THREE.BufferGeometry();
   hoverAccentGeometry.setAttribute(
     "position",
@@ -278,6 +283,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
   hoverAccent.renderOrder = 1;
   scene.add(hoverAccent);
 
+  // start looking at the middle of the survey patch
   const focus = centroid.clone().setLength(1.012);
   controls.target.copy(focus);
   camera.position.copy(centroid).setLength(1.2);
@@ -312,6 +318,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
     hoverAccent.visible = true;
   }
 
+  // reset red hover on field stars and tres ring
   function clearHoverHighlight() {
     hoverAccent.visible = false;
     if (hoveredFieldIndex !== null) {
@@ -330,6 +337,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
   }
 
   function pickStar() {
+    // hit radius scales with zoom so picking matches dot size on screen
     const fovRad = (camera.fov * Math.PI) / 180;
     const distance = Math.max(camera.position.distanceTo(controls.target), 0.05);
     const worldPerPixel = (2 * Math.tan(fovRad / 2) * distance) / canvas.clientHeight;
@@ -375,6 +383,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
     }
   }
 
+  // html label that tracks tres-2 on screen
   function updateMarker() {
     if (!tresPosition) {
       marker.hidden = true;
@@ -393,6 +402,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
     marker.style.transform = `translate(${x + 12}px, ${y}px) translateY(-50%)`;
   }
 
+  // mouse position in normalized device coords (-1 to 1)
   canvas.addEventListener("pointermove", (event) => {
     const rect = canvas.getBoundingClientRect();
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -408,6 +418,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
   controls.addEventListener("start", () => stage.classList.add("is-dragging"));
   controls.addEventListener("end", () => stage.classList.remove("is-dragging"));
   controls.addEventListener("change", () => {
+    // keep camera outside the sphere so stars stay visible
     if (camera.position.length() < 1.07) camera.position.setLength(1.07);
     viewDirty = true;
   });
@@ -424,6 +435,7 @@ export async function initSkySphere({ catalogUrl = "TRESCSV.json" } = {}) {
   function frame() {
     requestAnimationFrame(frame);
     controls.update();
+    // re-pick after drag/zoom; pointermove sets viewDirty
     if (hovering && viewDirty) {
       viewDirty = false;
       pickStar();
